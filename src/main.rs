@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use bullet::BulletPlugin;
 use player::PlayerPlugin;
 
 mod player;
+
+mod bullet;
 
 fn main() {
     App::new()
@@ -18,6 +21,7 @@ fn main() {
             ..default()
         }))
         .add_plugin(PlayerPlugin)
+        .add_plugin(BulletPlugin)
         .add_startup_system(spawn_basic_2d_camera)
         .add_system(bevy::window::close_on_esc)
         .run();

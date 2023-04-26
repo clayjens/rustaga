@@ -1,5 +1,7 @@
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
 use leafwing_input_manager::{plugin::InputManagerSystem, prelude::*};
+
+use crate::bullet::BulletPlugin;
 
 #[derive(Component)]
 struct Player;
@@ -67,7 +69,7 @@ impl Plugin for PlayerPlugin {
                 health: 100.,
             })
             .add_startup_system(Self::spawn_player)
-            .add_system(Self::report_abilities_used)
+            .add_system(Self::handle_abilities)
             .add_system(Self::handle_movement)
             .add_system(Self::wrap_player_around_window);
     }
@@ -131,10 +133,23 @@ impl PlayerPlugin {
         }
     }
 
-    fn report_abilities_used(query: Query<&ActionState<Ability>>) {
+    fn handle_abilities(
+        mut commands: Commands,
+        query: Query<&ActionState<Ability>>,
+        asset_server: Res<AssetServer>,
+        player_query: Query<&Transform, With<Player>>,
+    ) {
+        let player_transform = player_query.single();
+
         for ability_state in query.iter() {
             for ability in ability_state.get_just_pressed() {
-                dbg!(ability);
+                match ability {
+                    Ability::Evade => {}
+                    Ability::Bomb => {}
+                    Ability::Shoot => {
+                        BulletPlugin::spawn_bullet(&mut commands, &asset_server, &player_transform)
+                    }
+                }
             }
         }
     }
@@ -155,17 +170,21 @@ impl PlayerPlugin {
         }
     }
 
-    // a very rough and dirty clamping method
-    // FIXME: Get true window dimensions
-    fn wrap_player_around_window(mut player: Query<&mut Transform, With<Player>>) {
+    fn wrap_player_around_window(
+        mut player: Query<&mut Transform, With<Player>>,
+        window_query: Query<&Window, With<PrimaryWindow>>,
+    ) {
+        let window = window_query.single();
         let mut player_transform = player.single_mut();
 
-        if player_transform.translation.x < -300. {
-            player_transform.translation.x = 250.;
-        }
+        // Calculate the distance from the player to the edge of the window
+        let distance_to_edge = window.width() / 2. - player_transform.translation.x.abs();
 
-        if player_transform.translation.x > 250. {
-            player_transform.translation.x = -300.;
+        // If the player is outside the window, wrap them around to the other side
+        if distance_to_edge < 0. {
+            // Calculate the offset to move the player by to wrap them around to the other side of the window
+            let offset = -player_transform.translation.x.signum() * (window.width() / 2. - 1.);
+            player_transform.translation.x = offset;
         }
     }
 }
