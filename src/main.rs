@@ -37,8 +37,6 @@ fn main() {
     .add_startup_system(spawn_basic_2d_camera)
     .add_system(bevy::window::close_on_esc);
 
-    // bevy_mod_debugdump::print_main_schedule(&mut app);
-
     app.run();
 }
 

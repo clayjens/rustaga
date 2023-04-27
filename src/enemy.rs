@@ -41,7 +41,7 @@ impl EnemyPlugin {
         let enemy_sprite = SpriteBundle {
             transform: Transform {
                 translation: Vec3::new(0., 200., 0.),
-                rotation: Quat::from_rotation_z(1.5708 /* 90 degrees */),
+                rotation: Quat::from_rotation_z(90_f32.to_radians()),
                 ..default()
             },
             texture: asset_server.load("Ships/ship_0009.png"),
