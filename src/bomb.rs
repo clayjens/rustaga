@@ -3,7 +3,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 pub struct ShootBombEvent(pub Transform);
 
 #[derive(Component)]
-struct Bomb;
+pub struct Bomb;
 
 #[derive(Bundle)]
 struct BombBundle {
@@ -13,18 +13,24 @@ struct BombBundle {
 }
 
 #[derive(Resource)]
-struct BombResource {
-    speed: f32,
+pub struct BombResource {
+    /// The distance the bomb travels per second
+    pub speed: f32,
+    /// The radius of the bomb (used for collision detection)
+    pub radius: f32,
 }
 
 pub struct BombPlugin;
 impl Plugin for BombPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BombResource { speed: 200. })
-            .add_event::<ShootBombEvent>()
-            .add_system(Self::handle_shoot)
-            .add_system(Self::move_bomb)
-            .add_system(Self::despawn_if_offscreen);
+        app.insert_resource(BombResource {
+            speed: 200.,
+            radius: 50.,
+        })
+        .add_event::<ShootBombEvent>()
+        .add_system(Self::handle_shoot)
+        .add_system(Self::move_bomb)
+        .add_system(Self::despawn_if_offscreen);
     }
 }
 

@@ -3,7 +3,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 pub struct ShootBulletEvent(pub Transform);
 
 #[derive(Component)]
-struct Bullet;
+pub struct Bullet;
 
 #[derive(Bundle)]
 struct BulletBundle {
@@ -13,18 +13,24 @@ struct BulletBundle {
 }
 
 #[derive(Resource)]
-struct BulletResource {
-    speed: f32,
+pub struct BulletResource {
+    /// The distance the bullet travels per second
+    pub speed: f32,
+    /// The radius of the bullet (used for collision detection)
+    pub radius: f32,
 }
 
 pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BulletResource { speed: 300. })
-            .add_event::<ShootBulletEvent>()
-            .add_system(Self::handle_shoot)
-            .add_system(Self::move_bullet)
-            .add_system(Self::despawn_if_offscreen);
+        app.insert_resource(BulletResource {
+            speed: 300.,
+            radius: 10.,
+        })
+        .add_event::<ShootBulletEvent>()
+        .add_system(Self::handle_shoot)
+        .add_system(Self::move_bullet)
+        .add_system(Self::despawn_if_offscreen);
     }
 }
 
