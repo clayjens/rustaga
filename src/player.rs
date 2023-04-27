@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
 use leafwing_input_manager::{plugin::InputManagerSystem, prelude::*};
 
-use crate::bullet::{BulletPlugin, ShootBulletEvent};
+use crate::{bomb::ShootBombEvent, bullet::ShootBulletEvent};
 
 #[derive(Component)]
 struct Player;
@@ -79,13 +79,13 @@ impl PlayerPlugin {
     fn spawn_player(
         mut commands: Commands,
         asset_server: Res<AssetServer>,
-        window_query: Query<&Window, With<PrimaryWindow>>,
+        // window_query: Query<&Window, With<PrimaryWindow>>,
     ) {
-        let window = window_query.single();
+        // let window = window_query.single();
 
         let player_sprite = SpriteBundle {
             transform: Transform {
-                translation: Vec3::new(window.width() / 2., -200., 0.),
+                translation: Vec3::new(0., -200., 0.),
                 ..default()
             },
             texture: asset_server.load("Ships/ship_0004.png"),
@@ -144,7 +144,8 @@ impl PlayerPlugin {
     }
 
     fn handle_abilities(
-        mut ev_shoot: EventWriter<ShootBulletEvent>,
+        mut ev_shoot_bullet: EventWriter<ShootBulletEvent>,
+        mut ev_shoot_bomb: EventWriter<ShootBombEvent>,
         ability_query: Query<&ActionState<Ability>>,
         player_query: Query<&Transform, With<Player>>,
     ) {
@@ -153,7 +154,10 @@ impl PlayerPlugin {
         for ability_state in ability_query.iter() {
             for ability in ability_state.get_just_pressed() {
                 match ability {
-                    Ability::ShootBullet => ev_shoot.send(ShootBulletEvent(*player_transform)),
+                    Ability::ShootBullet => {
+                        ev_shoot_bullet.send(ShootBulletEvent(*player_transform))
+                    }
+                    Ability::Bomb => ev_shoot_bomb.send(ShootBombEvent(*player_transform)),
                     _ => {
                         dbg!(ability);
                     }

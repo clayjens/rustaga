@@ -1,49 +1,49 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-pub struct ShootBulletEvent(pub Transform);
+pub struct ShootBombEvent(pub Transform);
 
 #[derive(Component)]
-struct Bullet;
+struct Bomb;
 
 #[derive(Bundle)]
-struct BulletBundle {
-    bullet: Bullet,
+struct BombBundle {
+    bomb: Bomb,
     #[bundle]
     sprite: SpriteBundle,
 }
 
 #[derive(Resource)]
-struct BulletResource {
+struct BombResource {
     speed: f32,
 }
 
-pub struct BulletPlugin;
-impl Plugin for BulletPlugin {
+pub struct BombPlugin;
+impl Plugin for BombPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(BulletResource { speed: 300. })
-            .add_event::<ShootBulletEvent>()
+        app.insert_resource(BombResource { speed: 200. })
+            .add_event::<ShootBombEvent>()
             .add_system(Self::handle_shoot)
-            .add_system(Self::move_bullet)
+            .add_system(Self::move_bomb)
             .add_system(Self::despawn_if_offscreen);
     }
 }
 
-impl BulletPlugin {
+impl BombPlugin {
     fn handle_shoot(
         mut commands: Commands,
         asset_server: Res<AssetServer>,
         audio: Res<Audio>,
-        mut ev_shoot: EventReader<ShootBulletEvent>,
+        mut ev_shoot: EventReader<ShootBombEvent>,
     ) {
         for ev in ev_shoot.iter() {
-            let bullet_sfx = asset_server.load("Audio/laserSmall_000.ogg");
-            audio.play(bullet_sfx);
+            let bomb_sfx = asset_server.load("Audio/laserLarge_000.ogg");
+            audio.play(bomb_sfx);
             let player_transform = ev.0;
 
-            commands.spawn(BulletBundle {
-                bullet: Bullet,
+            commands.spawn(BombBundle {
+                bomb: Bomb,
                 sprite: SpriteBundle {
-                    texture: asset_server.load("Tiles/tile_0002.png"),
+                    texture: asset_server.load("Tiles/tile_0012.png"),
                     transform: Transform {
                         translation: Vec3::new(
                             player_transform.translation.x,
@@ -58,24 +58,24 @@ impl BulletPlugin {
         }
     }
 
-    fn move_bullet(
-        mut bullet_query: Query<&mut Transform, With<Bullet>>,
+    fn move_bomb(
+        mut bomb_query: Query<&mut Transform, With<Bomb>>,
         time: Res<Time>,
-        bullet_resource: Res<BulletResource>,
+        bomb_resource: Res<BombResource>,
     ) {
-        for mut transform in bullet_query.iter_mut() {
-            transform.translation.y += bullet_resource.speed * time.delta_seconds();
+        for mut transform in bomb_query.iter_mut() {
+            transform.translation.y += bomb_resource.speed * time.delta_seconds();
         }
     }
 
     fn despawn_if_offscreen(
         mut commands: Commands,
-        mut bullet_query: Query<(Entity, &Transform), With<Bullet>>,
+        mut bomb_query: Query<(Entity, &Transform), With<Bomb>>,
         window_query: Query<&Window, With<PrimaryWindow>>,
     ) {
         let window = window_query.single();
 
-        for (entity, transform) in bullet_query.iter_mut() {
+        for (entity, transform) in bomb_query.iter_mut() {
             if transform.translation.y > window.height() / 2. {
                 commands.entity(entity).despawn_recursive();
             }
