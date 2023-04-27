@@ -43,9 +43,9 @@ impl BulletPlugin {
     ) {
         for ev in ev_shoot.iter() {
             let bullet_sfx = asset_server.load("Audio/laserSmall_000.ogg");
-            audio.play(bullet_sfx);
             let player_transform = ev.0;
 
+            audio.play(bullet_sfx);
             commands.spawn(BulletBundle {
                 bullet: Bullet,
                 sprite: SpriteBundle {
