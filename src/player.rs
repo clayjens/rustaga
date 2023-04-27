@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
 use leafwing_input_manager::{plugin::InputManagerSystem, prelude::*};
 
-use crate::bullet::BulletPlugin;
+use crate::bullet::{BulletPlugin, ShootBulletEvent};
 
 #[derive(Component)]
 struct Player;
@@ -26,7 +26,7 @@ enum Slot {
 enum Ability {
     Evade,
     Bomb,
-    Shoot,
+    ShootBullet,
 }
 
 #[derive(Component, Debug, Default, Deref, DerefMut)]
@@ -76,14 +76,24 @@ impl Plugin for PlayerPlugin {
 }
 
 impl PlayerPlugin {
-    fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
+    fn spawn_player(
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+        window_query: Query<&Window, With<PrimaryWindow>>,
+    ) {
+        let window = window_query.single();
+
         let player_sprite = SpriteBundle {
+            transform: Transform {
+                translation: Vec3::new(window.width() / 2., -200., 0.),
+                ..default()
+            },
             texture: asset_server.load("Ships/ship_0004.png"),
             ..default()
         };
 
         let mut ability_slot_map = AbilitySlotMap::default();
-        ability_slot_map.insert(Slot::Primary, Ability::Shoot);
+        ability_slot_map.insert(Slot::Primary, Ability::ShootBullet);
         ability_slot_map.insert(Slot::Secondary, Ability::Bomb);
         ability_slot_map.insert(Slot::Ability1, Ability::Evade);
 
@@ -134,20 +144,18 @@ impl PlayerPlugin {
     }
 
     fn handle_abilities(
-        mut commands: Commands,
-        query: Query<&ActionState<Ability>>,
-        asset_server: Res<AssetServer>,
+        mut ev_shoot: EventWriter<ShootBulletEvent>,
+        ability_query: Query<&ActionState<Ability>>,
         player_query: Query<&Transform, With<Player>>,
     ) {
         let player_transform = player_query.single();
 
-        for ability_state in query.iter() {
+        for ability_state in ability_query.iter() {
             for ability in ability_state.get_just_pressed() {
                 match ability {
-                    Ability::Evade => {}
-                    Ability::Bomb => {}
-                    Ability::Shoot => {
-                        BulletPlugin::spawn_bullet(&mut commands, &asset_server, &player_transform)
+                    Ability::ShootBullet => ev_shoot.send(ShootBulletEvent(*player_transform)),
+                    _ => {
+                        dbg!(ability);
                     }
                 }
             }

@@ -1,5 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
+pub struct ShootBulletEvent(pub Transform);
+
 #[derive(Component)]
 struct Bullet;
 
@@ -19,32 +21,41 @@ pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(BulletResource { speed: 300. })
+            .add_event::<ShootBulletEvent>()
+            .add_system(Self::handle_shoot)
             .add_system(Self::move_bullet)
             .add_system(Self::despawn_if_offscreen);
     }
 }
 
 impl BulletPlugin {
-    pub fn spawn_bullet(
-        commands: &mut Commands,
-        asset_server: &Res<AssetServer>,
-        player_transform: &Transform,
+    pub fn handle_shoot(
+        mut commands: Commands,
+        asset_server: Res<AssetServer>,
+        audio: Res<Audio>,
+        mut ev_shoot: EventReader<ShootBulletEvent>,
     ) {
-        commands.spawn(BulletBundle {
-            bullet: Bullet,
-            sprite: SpriteBundle {
-                texture: asset_server.load("Tiles/tile_0002.png"),
-                transform: Transform {
-                    translation: Vec3::new(
-                        player_transform.translation.x,
-                        player_transform.translation.y + 20.,
-                        0.,
-                    ),
+        for ev in ev_shoot.iter() {
+            let laser_sfx = asset_server.load("Audio/laserSmall_000.ogg");
+            audio.play(laser_sfx);
+            let player_transform = ev.0;
+
+            commands.spawn(BulletBundle {
+                bullet: Bullet,
+                sprite: SpriteBundle {
+                    texture: asset_server.load("Tiles/tile_0002.png"),
+                    transform: Transform {
+                        translation: Vec3::new(
+                            player_transform.translation.x,
+                            player_transform.translation.y + 20.,
+                            0.,
+                        ),
+                        ..default()
+                    },
                     ..default()
                 },
-                ..default()
-            },
-        });
+            });
+        }
     }
 
     fn move_bullet(
@@ -66,7 +77,6 @@ impl BulletPlugin {
 
         for (entity, transform) in query.iter_mut() {
             if transform.translation.y > window.height() / 2. {
-                println!("despawned bullet");
                 commands.entity(entity).despawn_recursive();
             }
         }
