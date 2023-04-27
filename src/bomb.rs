@@ -1,5 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
+use crate::player::PlayerResource;
+
 pub struct ShootBombEvent(pub Transform);
 
 #[derive(Component)]
@@ -40,27 +42,33 @@ impl BombPlugin {
         asset_server: Res<AssetServer>,
         audio: Res<Audio>,
         mut ev_shoot: EventReader<ShootBombEvent>,
+        mut player_resource: ResMut<PlayerResource>,
     ) {
         for ev in ev_shoot.iter() {
             let bomb_sfx = asset_server.load("Audio/laserLarge_000.ogg");
-            audio.play(bomb_sfx);
             let player_transform = ev.0;
 
-            commands.spawn(BombBundle {
-                bomb: Bomb,
-                sprite: SpriteBundle {
-                    texture: asset_server.load("Tiles/tile_0012.png"),
-                    transform: Transform {
-                        translation: Vec3::new(
-                            player_transform.translation.x,
-                            player_transform.translation.y + 20.,
-                            0.,
-                        ),
+            if player_resource.bombs > 0 {
+                audio.play(bomb_sfx);
+                player_resource.bombs -= 1;
+                commands.spawn(BombBundle {
+                    bomb: Bomb,
+                    sprite: SpriteBundle {
+                        texture: asset_server.load("Tiles/tile_0012.png"),
+                        transform: Transform {
+                            translation: Vec3::new(
+                                player_transform.translation.x,
+                                player_transform.translation.y + 20.,
+                                0.,
+                            ),
+                            ..default()
+                        },
                         ..default()
                     },
-                    ..default()
-                },
-            });
+                });
+            }
+
+            println!("Bombs left: {}", player_resource.bombs);
         }
     }
 

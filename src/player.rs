@@ -1,10 +1,14 @@
 use bevy::{prelude::*, utils::HashMap, window::PrimaryWindow};
 use leafwing_input_manager::{plugin::InputManagerSystem, prelude::*};
 
-use crate::{bomb::ShootBombEvent, bullet::ShootBulletEvent};
+use crate::{
+    bomb::ShootBombEvent,
+    bullet::ShootBulletEvent,
+    evade::{EvadeEvent, EvadeTimer},
+};
 
 #[derive(Component)]
-struct Player;
+pub struct Player;
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
 enum Movement {
@@ -35,9 +39,11 @@ struct AbilitySlotMap {
 }
 
 #[derive(Resource)]
-struct PlayerResource {
-    movement_speed: f32,
-    health: f32,
+pub struct PlayerResource {
+    pub movement_speed: f32,
+    pub health: f32,
+    pub evades: u32,
+    pub bombs: u32,
 }
 
 #[derive(Bundle)]
@@ -67,11 +73,14 @@ impl Plugin for PlayerPlugin {
             .insert_resource(PlayerResource {
                 movement_speed: 250.,
                 health: 100.,
+                evades: 3,
+                bombs: 3,
             })
             .add_startup_system(Self::spawn_player)
             .add_system(Self::handle_abilities)
             .add_system(Self::handle_movement)
-            .add_system(Self::wrap_player_around_window);
+            .add_system(Self::wrap_player_around_window)
+            .add_system(Self::handle_evasion);
     }
 }
 
@@ -146,6 +155,7 @@ impl PlayerPlugin {
     fn handle_abilities(
         mut ev_shoot_bullet: EventWriter<ShootBulletEvent>,
         mut ev_shoot_bomb: EventWriter<ShootBombEvent>,
+        mut ev_evade: EventWriter<EvadeEvent>,
         ability_query: Query<&ActionState<Ability>>,
         player_query: Query<&Transform, With<Player>>,
     ) {
@@ -158,9 +168,7 @@ impl PlayerPlugin {
                         ev_shoot_bullet.send(ShootBulletEvent(*player_transform))
                     }
                     Ability::Bomb => ev_shoot_bomb.send(ShootBombEvent(*player_transform)),
-                    _ => {
-                        dbg!(ability);
-                    }
+                    Ability::Evade => ev_evade.send(EvadeEvent),
                 }
             }
         }
@@ -197,6 +205,47 @@ impl PlayerPlugin {
             // Calculate the offset to move the player by to wrap them around to the other side of the window
             let offset = -player_transform.translation.x.signum() * (window.width() / 2. - 1.);
             player_transform.translation.x = offset;
+        }
+    }
+
+    fn handle_evasion(
+        mut commands: Commands,
+        mut player_query: Query<(Entity, &Transform), With<Player>>,
+        time: Res<Time>,
+        mut evade_timer_query: Query<&mut EvadeTimer>,
+        asset_server: Res<AssetServer>,
+    ) {
+        let (player_entity, player_transform) = player_query.single_mut();
+
+        if let Ok(mut evade_timer) = evade_timer_query.get_single_mut() {
+            if evade_timer.time.just_finished() {
+                let original_player_sprite = SpriteBundle {
+                    transform: Transform {
+                        translation: player_transform.translation,
+                        ..default()
+                    },
+                    texture: asset_server.load("Ships/ship_0004.png"),
+                    ..default()
+                };
+
+                commands
+                    .entity(player_entity)
+                    .insert(original_player_sprite) // Revert to the original sprite
+                    .remove::<EvadeTimer>(); // Remove the evade timer
+            } else {
+                evade_timer.time.tick(time.delta());
+
+                let evasion_player_sprite = SpriteBundle {
+                    transform: Transform {
+                        translation: player_transform.translation,
+                        ..default()
+                    },
+                    texture: asset_server.load("Ships/ship_0016.png"),
+                    ..default()
+                };
+
+                commands.entity(player_entity).insert(evasion_player_sprite);
+            }
         }
     }
 }

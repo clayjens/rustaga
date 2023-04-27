@@ -3,11 +3,13 @@ use bevy::prelude::*;
 use bomb::BombPlugin;
 use bullet::BulletPlugin;
 use enemy::EnemyPlugin;
+use evade::EvadePlugin;
 use player::PlayerPlugin;
 
 mod bomb;
 mod bullet;
 mod enemy;
+mod evade;
 mod player;
 
 fn main() {
@@ -34,6 +36,7 @@ fn main() {
     .add_plugin(BulletPlugin)
     .add_plugin(BombPlugin)
     .add_plugin(EnemyPlugin)
+    .add_plugin(EvadePlugin)
     .add_startup_system(spawn_basic_2d_camera)
     .add_system(bevy::window::close_on_esc);
 
